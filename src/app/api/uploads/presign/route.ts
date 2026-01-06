@@ -37,9 +37,12 @@ export async function POST(request: Request) {
   }
 
   const body = (await request.json()) as { filename?: string; contentType?: string };
-  if (!body.filename || !body.contentType) {
+  if (!body.filename) {
     return NextResponse.json({ message: "Missing upload metadata." }, { status: 400 });
   }
+  const contentType = body.contentType && body.contentType.includes("/")
+    ? body.contentType
+    : "application/octet-stream";
 
   const key = `identity-uploads/${crypto.randomUUID()}-${sanitizeFilename(body.filename)}`;
 
@@ -61,7 +64,7 @@ export async function POST(request: Request) {
     path: `/${config.bucket}/${key}`,
     headers: {
       host: endpointUrl.hostname,
-      "content-type": body.contentType,
+      "content-type": contentType,
       "x-amz-content-sha256": "UNSIGNED-PAYLOAD",
     },
   });

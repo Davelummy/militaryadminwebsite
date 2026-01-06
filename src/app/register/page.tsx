@@ -247,13 +247,14 @@ export default function RegisterPage() {
 
     const uploadDocument = async (file: File): Promise<IdentityDocument> => {
       try {
+        const contentType = file.type || "application/octet-stream";
         const presignResponse = await fetch("/api/uploads/presign", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ filename: file.name, contentType: file.type }),
+          body: JSON.stringify({ filename: file.name, contentType }),
         });
         if (!presignResponse.ok) {
-          return { name: file.name, size: file.size, type: file.type };
+          return { name: file.name, size: file.size, type: contentType };
         }
         const { url, key, publicUrl } = (await presignResponse.json()) as {
           url: string;
@@ -263,7 +264,7 @@ export default function RegisterPage() {
         const uploadResponse = await fetch(url, {
           method: "PUT",
           headers: {
-            "Content-Type": file.type,
+            "Content-Type": contentType,
             "x-amz-content-sha256": "UNSIGNED-PAYLOAD",
           },
           body: file,
@@ -274,7 +275,7 @@ export default function RegisterPage() {
         return {
           name: file.name,
           size: file.size,
-          type: file.type,
+          type: contentType,
           key,
           url: publicUrl ?? undefined,
         };
@@ -282,7 +283,7 @@ export default function RegisterPage() {
         setUploadWarning(
           "We could not upload your ID image. We'll store the metadata and continue."
         );
-        return { name: file.name, size: file.size, type: file.type };
+        return { name: file.name, size: file.size, type: file.type || "application/octet-stream" };
       }
     };
 
