@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { PageShell } from "@/components/ui/PageShell";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
@@ -52,7 +52,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const loadRecords = async () => {
+  const loadRecords = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
@@ -66,6 +66,13 @@ export default function AdminPage() {
       params.set("page", String(page));
       params.set("pageSize", String(pageSize));
       const response = await fetch(`/api/identity/admin/list?${params.toString()}`);
+      if (response.redirected || response.url.includes("/admin/login")) {
+        window.location.href = "/admin/login";
+        return;
+      }
+      if (!response.ok) {
+        throw new Error("Request failed");
+      }
       const data = (await response.json()) as AdminListResponse;
       setRecords(data.records);
       setTotal(data.total);
@@ -74,7 +81,7 @@ export default function AdminPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, pageSize, query, statusFilter]);
 
   const updateStatus = async (
     requestId: string,
@@ -99,7 +106,23 @@ export default function AdminPage() {
 
   useEffect(() => {
     void loadRecords();
-  }, [page, pageSize, statusFilter]);
+  }, [loadRecords]);
+
+  useEffect(() => {
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        setRecords([]);
+        setTotal(0);
+        setError("");
+        void loadRecords();
+      }
+    };
+
+    window.addEventListener("pageshow", handlePageShow);
+    return () => {
+      window.removeEventListener("pageshow", handlePageShow);
+    };
+  }, [loadRecords]);
 
   return (
     <PageShell variant="admin">
@@ -116,7 +139,7 @@ export default function AdminPage() {
               variant="outline"
               onClick={async () => {
                 await fetch("/api/admin/logout", { method: "POST" });
-                window.location.href = "/admin/login";
+                window.location.replace("/admin/login");
               }}
             >
               Log out

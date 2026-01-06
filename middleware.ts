@@ -12,7 +12,11 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (pathname.startsWith("/admin/login") || pathname.startsWith("/api/admin/login")) {
-    return NextResponse.next();
+    const response = NextResponse.next();
+    response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    response.headers.set("Pragma", "no-cache");
+    response.headers.set("Expires", "0");
+    return response;
   }
 
   const isAdminRoute =
@@ -24,17 +28,29 @@ export async function middleware(request: NextRequest) {
 
   const adminKey = process.env.ADMIN_PORTAL_KEY || "";
   if (!adminKey) {
-    return NextResponse.redirect(new URL("/admin/login", request.url));
+    const response = NextResponse.redirect(new URL("/admin/login", request.url));
+    response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    response.headers.set("Pragma", "no-cache");
+    response.headers.set("Expires", "0");
+    return response;
   }
 
   const expected = await hashKey(adminKey);
   const cookie = request.cookies.get("admin_access")?.value;
 
   if (!cookie || cookie !== expected) {
-    return NextResponse.redirect(new URL("/admin/login", request.url));
+    const response = NextResponse.redirect(new URL("/admin/login", request.url));
+    response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    response.headers.set("Pragma", "no-cache");
+    response.headers.set("Expires", "0");
+    return response;
   }
 
-  return NextResponse.next();
+  const response = NextResponse.next();
+  response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  response.headers.set("Pragma", "no-cache");
+  response.headers.set("Expires", "0");
+  return response;
 }
 
 export const config = {
