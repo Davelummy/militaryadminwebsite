@@ -270,7 +270,10 @@ export default function RegisterPage() {
           body: file,
         });
         if (!uploadResponse.ok) {
-          throw new Error(`Upload failed (${uploadResponse.status})`);
+          const errorText = await uploadResponse.text();
+          throw new Error(
+            `Upload failed (${uploadResponse.status}): ${errorText || "No response body"}`
+          );
         }
         return {
           name: file.name,
@@ -279,10 +282,12 @@ export default function RegisterPage() {
           key,
           url: publicUrl ?? undefined,
         };
-      } catch {
-        setUploadWarning(
-          "We could not upload your ID image. We'll store the metadata and continue."
-        );
+      } catch (error) {
+        const detail =
+          error instanceof Error
+            ? `We could not upload your ID image. ${error.message}`
+            : "We could not upload your ID image. Please try again.";
+        setUploadWarning(`${detail} We'll store the metadata and continue.`);
         return { name: file.name, size: file.size, type: file.type || "application/octet-stream" };
       }
     };
