@@ -81,7 +81,8 @@ export default function RegisterPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [requestId, setRequestId] = useState<string | null>(null);
-  const [hydrated, setHydrated] = useState(false);
+  const [reloadWarning, setReloadWarning] = useState("");
+  const [uploadWarning, setUploadWarning] = useState("");
 
   const relationshipOptions = useMemo(
     () => [
@@ -116,50 +117,49 @@ export default function RegisterPage() {
   useEffect(() => {
     const saved = localStorage.getItem("militaryadmin.registration");
     if (saved) {
-      try {
-        const parsed = JSON.parse(saved) as Partial<RegistrationData> & { step?: number };
-        setFormData((prev) => ({
-          ...prev,
-          firstName: parsed.firstName ?? prev.firstName,
-          lastName: parsed.lastName ?? prev.lastName,
-          email: parsed.email ?? prev.email,
-          phone: parsed.phone ?? prev.phone,
-          relationship: parsed.relationship ?? prev.relationship,
-          serviceMemberName: parsed.serviceMemberName ?? prev.serviceMemberName,
-          branch: parsed.branch ?? prev.branch,
-          rank: parsed.rank ?? prev.rank,
-          unit: parsed.unit ?? prev.unit,
-          region: parsed.region ?? prev.region,
-          connectionDescription: parsed.connectionDescription ?? prev.connectionDescription,
-        }));
-        if (parsed.step && parsed.step >= 1 && parsed.step <= 4) {
-          setStep(parsed.step);
-        }
-      } catch {
-        // Ignore malformed local storage data.
-      }
+      localStorage.removeItem("militaryadmin.registration");
     }
-    setHydrated(true);
+
+    const navigationEntry = performance.getEntriesByType("navigation")[0] as
+      | PerformanceNavigationTiming
+      | undefined;
+    if (navigationEntry?.type === "reload") {
+      setReloadWarning("This form restarted because the page was reloaded.");
+    }
+    setStep(1);
+    setFormData(initialData);
   }, []);
 
   useEffect(() => {
-    if (!hydrated) return;
-    const payload = {
-      step,
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      email: formData.email,
-      phone: formData.phone,
-      relationship: formData.relationship,
-      serviceMemberName: formData.serviceMemberName,
-      branch: formData.branch,
-      rank: formData.rank,
-      unit: formData.unit,
-      region: formData.region,
-      connectionDescription: formData.connectionDescription,
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        setReloadWarning("This form restarted because the page was reloaded.");
+        setStep(1);
+        setFormData(initialData);
+        setErrors({});
+      }
     };
-    localStorage.setItem("militaryadmin.registration", JSON.stringify(payload));
-  }, [hydrated, step, formData]);
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (submitted) return;
+      const hasInput = Object.values(formData).some((value) => {
+        if (typeof value === "boolean") return value;
+        if (value instanceof File) return true;
+        return String(value).trim().length > 0;
+      });
+      if (hasInput) {
+        event.preventDefault();
+        event.returnValue = "";
+      }
+    };
+
+    window.addEventListener("pageshow", handlePageShow);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("pageshow", handlePageShow);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [formData, submitted]);
 
   const getOptionLabel = (value: string, options: { value: string; label: string }[]) =>
     options.find((option) => option.value === value)?.label ?? "Not provided";
@@ -243,48 +243,50 @@ export default function RegisterPage() {
   const handleSubmit = async () => {
     if (!validateStep(4)) return;
     setSubmitting(true);
+    setUploadWarning("");
 
     const uploadDocument = async (file: File): Promise<IdentityDocument> => {
-      const presignResponse = await fetch("/api/uploads/presign", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ filename: file.name, contentType: file.type }),
-      });
-      if (!presignResponse.ok) {
+      try {
+        const presignResponse = await fetch("/api/uploads/presign", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ filename: file.name, contentType: file.type }),
+        });
+        if (!presignResponse.ok) {
+          return { name: file.name, size: file.size, type: file.type };
+        }
+        const { url, key, publicUrl } = (await presignResponse.json()) as {
+          url: string;
+          key: string;
+          publicUrl?: string | null;
+        };
+        const uploadResponse = await fetch(url, {
+          method: "PUT",
+          headers: { "Content-Type": file.type },
+          body: file,
+        });
+        if (!uploadResponse.ok) {
+          throw new Error("Upload failed");
+        }
+        return {
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          key,
+          url: publicUrl ?? undefined,
+        };
+      } catch {
+        setUploadWarning(
+          "We could not upload your ID image. We'll store the metadata and continue."
+        );
         return { name: file.name, size: file.size, type: file.type };
       }
-      const { url, key, publicUrl } = (await presignResponse.json()) as {
-        url: string;
-        key: string;
-        publicUrl?: string | null;
-      };
-      const uploadResponse = await fetch(url, {
-        method: "PUT",
-        headers: { "Content-Type": file.type },
-        body: file,
-      });
-      if (!uploadResponse.ok) {
-        throw new Error("Upload failed");
-      }
-      return {
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        key,
-        url: publicUrl ?? undefined,
-      };
     };
 
     let idFront: IdentityDocument | null = null;
     let idBack: IdentityDocument | null = null;
-    try {
-      idFront = formData.idFront ? await uploadDocument(formData.idFront) : null;
-      idBack = formData.idBack ? await uploadDocument(formData.idBack) : null;
-    } catch {
-      setErrors({ submit: "Unable to upload your ID. Please try again." });
-      setSubmitting(false);
-      return;
-    }
+    idFront = formData.idFront ? await uploadDocument(formData.idFront) : null;
+    idBack = formData.idBack ? await uploadDocument(formData.idBack) : null;
 
     const payload = {
       ...formData,
@@ -681,6 +683,24 @@ export default function RegisterPage() {
                   />
                 </div>
               </section>
+            ) : null}
+
+            {reloadWarning ? (
+              <div className="usa-alert usa-alert--warning margin-top-2">
+                <div className="usa-alert__body">
+                  <p className="usa-alert__text">
+                    {reloadWarning} Any previously entered data was cleared.
+                  </p>
+                </div>
+              </div>
+            ) : null}
+
+            {uploadWarning ? (
+              <div className="usa-alert usa-alert--warning margin-top-2">
+                <div className="usa-alert__body">
+                  <p className="usa-alert__text">{uploadWarning}</p>
+                </div>
+              </div>
             ) : null}
 
             {errors.submit ? (

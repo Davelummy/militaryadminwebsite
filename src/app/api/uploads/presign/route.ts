@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { NodeHttpHandler } from "@smithy/node-http-handler";
 import crypto from "crypto";
-import https from "https";
+import { HttpRequest } from "@smithy/protocol-http";
+import { SignatureV4 } from "@smithy/signature-v4";
+import { Sha256 } from "@aws-crypto/sha256-js";
 
 const getR2Config = () => {
   const accountId = process.env.R2_ACCOUNT_ID || "";
@@ -44,26 +43,40 @@ export async function POST(request: Request) {
 
   const key = `identity-uploads/${crypto.randomUUID()}-${sanitizeFilename(body.filename)}`;
 
-  const client = new S3Client({
-    region: "auto",
-    forcePathStyle: true,
-    endpoint: config.endpoint,
+  const endpointUrl = new URL(config.endpoint);
+  const signer = new SignatureV4({
     credentials: {
       accessKeyId: config.accessKeyId,
       secretAccessKey: config.secretAccessKey,
     },
-    requestHandler: new NodeHttpHandler({
-      httpsAgent: new https.Agent({ keepAlive: false, minVersion: "TLSv1.2" }),
-    }),
+    region: "auto",
+    service: "s3",
+    sha256: Sha256,
   });
 
-  const command = new PutObjectCommand({
-    Bucket: config.bucket,
-    Key: key,
-    ContentType: body.contentType,
+  const request = new HttpRequest({
+    protocol: endpointUrl.protocol,
+    hostname: endpointUrl.hostname,
+    method: "PUT",
+    path: `/${config.bucket}/${key}`,
+    headers: {
+      host: endpointUrl.hostname,
+      "content-type": body.contentType,
+    },
   });
 
-  const url = await getSignedUrl(client, command, { expiresIn: 300 });
+  const signed = await signer.presign(request, { expiresIn: 300 });
+  const query = new URLSearchParams();
+  Object.entries(signed.query ?? {}).forEach(([name, value]) => {
+    if (Array.isArray(value)) {
+      value.forEach((item) => query.append(name, item));
+      return;
+    }
+    if (value !== undefined) {
+      query.set(name, String(value));
+    }
+  });
+  const url = `${signed.protocol}//${signed.hostname}${signed.path}?${query.toString()}`;
   const publicUrl = config.publicBaseUrl ? `${config.publicBaseUrl}/${key}` : null;
 
   return NextResponse.json({ url, key, publicUrl });
