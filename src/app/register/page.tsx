@@ -10,6 +10,7 @@ import { CheckboxField } from "@/components/ui/CheckboxField";
 import { FileUploadField } from "@/components/ui/FileUploadField";
 import { Button } from "@/components/ui/Button";
 import { TextAreaField } from "@/components/ui/TextAreaField";
+import type { IdentityDocument } from "@/domain/identity/types";
 
 type RegistrationData = {
   firstName: string;
@@ -243,14 +244,52 @@ export default function RegisterPage() {
     if (!validateStep(4)) return;
     setSubmitting(true);
 
+    const uploadDocument = async (file: File): Promise<IdentityDocument> => {
+      const presignResponse = await fetch("/api/uploads/presign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename: file.name, contentType: file.type }),
+      });
+      if (!presignResponse.ok) {
+        return { name: file.name, size: file.size, type: file.type };
+      }
+      const { url, key, publicUrl } = (await presignResponse.json()) as {
+        url: string;
+        key: string;
+        publicUrl?: string | null;
+      };
+      const uploadResponse = await fetch(url, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+      if (!uploadResponse.ok) {
+        throw new Error("Upload failed");
+      }
+      return {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        key,
+        url: publicUrl ?? undefined,
+      };
+    };
+
+    let idFront: IdentityDocument | null = null;
+    let idBack: IdentityDocument | null = null;
+    try {
+      idFront = formData.idFront ? await uploadDocument(formData.idFront) : null;
+      idBack = formData.idBack ? await uploadDocument(formData.idBack) : null;
+    } catch {
+      setErrors({ submit: "Unable to upload your ID. Please try again." });
+      setSubmitting(false);
+      return;
+    }
+
     const payload = {
       ...formData,
-      idFront: formData.idFront
-        ? { name: formData.idFront.name, size: formData.idFront.size, type: formData.idFront.type }
-        : null,
-      idBack: formData.idBack
-        ? { name: formData.idBack.name, size: formData.idBack.size, type: formData.idBack.type }
-        : null,
+      idFront,
+      idBack,
     };
 
     try {

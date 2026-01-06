@@ -4,6 +4,8 @@ export type IdentityDocument = {
   name: string;
   size: number;
   type: string;
+  key?: string;
+  url?: string;
 };
 
 export type IdentityRequestPayload = {
