@@ -54,7 +54,7 @@ export async function POST(request: Request) {
     sha256: Sha256,
   });
 
-  const request = new HttpRequest({
+  const signedRequest = new HttpRequest({
     protocol: endpointUrl.protocol,
     hostname: endpointUrl.hostname,
     method: "PUT",
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
     },
   });
 
-  const signed = await signer.presign(request, { expiresIn: 300 });
+  const signed = await signer.presign(signedRequest, { expiresIn: 300 });
   const query = new URLSearchParams();
   Object.entries(signed.query ?? {}).forEach(([name, value]) => {
     if (Array.isArray(value)) {
