@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PageShell } from "@/components/ui/PageShell";
 import { StepIndicator } from "@/components/ui/StepIndicator";
 import { TextField } from "@/components/ui/TextField";
@@ -80,6 +80,7 @@ export default function RegisterPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [requestId, setRequestId] = useState<string | null>(null);
+  const [hydrated, setHydrated] = useState(false);
 
   const relationshipOptions = useMemo(
     () => [
@@ -110,6 +111,54 @@ export default function RegisterPage() {
   const updateField = <K extends keyof RegistrationData>(key: K, value: RegistrationData[K]) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
   };
+
+  useEffect(() => {
+    const saved = localStorage.getItem("militaryadmin.registration");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved) as Partial<RegistrationData> & { step?: number };
+        setFormData((prev) => ({
+          ...prev,
+          firstName: parsed.firstName ?? prev.firstName,
+          lastName: parsed.lastName ?? prev.lastName,
+          email: parsed.email ?? prev.email,
+          phone: parsed.phone ?? prev.phone,
+          relationship: parsed.relationship ?? prev.relationship,
+          serviceMemberName: parsed.serviceMemberName ?? prev.serviceMemberName,
+          branch: parsed.branch ?? prev.branch,
+          rank: parsed.rank ?? prev.rank,
+          unit: parsed.unit ?? prev.unit,
+          region: parsed.region ?? prev.region,
+          connectionDescription: parsed.connectionDescription ?? prev.connectionDescription,
+        }));
+        if (parsed.step && parsed.step >= 1 && parsed.step <= 4) {
+          setStep(parsed.step);
+        }
+      } catch {
+        // Ignore malformed local storage data.
+      }
+    }
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    const payload = {
+      step,
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      email: formData.email,
+      phone: formData.phone,
+      relationship: formData.relationship,
+      serviceMemberName: formData.serviceMemberName,
+      branch: formData.branch,
+      rank: formData.rank,
+      unit: formData.unit,
+      region: formData.region,
+      connectionDescription: formData.connectionDescription,
+    };
+    localStorage.setItem("militaryadmin.registration", JSON.stringify(payload));
+  }, [hydrated, step, formData]);
 
   const getOptionLabel = (value: string, options: { value: string; label: string }[]) =>
     options.find((option) => option.value === value)?.label ?? "Not provided";
@@ -216,6 +265,7 @@ export default function RegisterPage() {
       const data = (await response.json()) as { requestId: string };
       setRequestId(data.requestId);
       setSubmitted(true);
+      localStorage.removeItem("militaryadmin.registration");
     } catch {
       setErrors({ submit: "Unable to submit your request. Please try again." });
     } finally {
