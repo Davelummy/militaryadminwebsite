@@ -28,7 +28,7 @@ export async function GET(request: Request) {
   const page = Math.max(Number(searchParams.get("page") || 1), 1);
   const pageSize = Math.min(Math.max(Number(searchParams.get("pageSize") || 10), 5), 50);
 
-  const filtered = listIdentityRequests().filter((record) => {
+  const filtered = (await listIdentityRequests()).filter((record) => {
     const matchesStatus = status ? record.status === status : true;
     const matchesQuery = query
       ? [

@@ -51,7 +51,7 @@ export async function POST(request: Request) {
   const requestId = `SCF-${crypto.randomUUID()}`;
   const now = new Date().toISOString();
 
-  saveIdentityRequest({
+  await saveIdentityRequest({
     requestId,
     status: "PENDING",
     infoRequired: false,
@@ -91,7 +91,7 @@ export async function POST(request: Request) {
   });
 
   const status = await verifyIdentityStub();
-  updateIdentityStatus(requestId, status);
+  await updateIdentityStatus(requestId, status);
 
   return NextResponse.json({
     requestId,

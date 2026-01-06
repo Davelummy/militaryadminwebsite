@@ -18,14 +18,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "Missing requestId or status." }, { status: 400 });
   }
 
-  const record = getIdentityRequest(payload.requestId);
+  const record = await getIdentityRequest(payload.requestId);
   if (!record) {
     return NextResponse.json({ message: "Request not found." }, { status: 404 });
   }
 
-  updateIdentityStatus(payload.requestId, payload.status);
+  await updateIdentityStatus(payload.requestId, payload.status);
   if (typeof payload.infoRequired === "boolean") {
-    markInfoRequired(payload.requestId, payload.infoRequired);
+    await markInfoRequired(payload.requestId, payload.infoRequired);
   }
 
   return NextResponse.json({

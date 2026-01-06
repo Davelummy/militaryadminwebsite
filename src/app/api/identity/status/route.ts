@@ -12,7 +12,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ message: "Missing requestId." }, { status: 400 });
   }
 
-  const record = getIdentityRequest(requestId);
+  const record = await getIdentityRequest(requestId);
   if (!record) {
     return NextResponse.json({ message: "Request not found." }, { status: 404 });
   }
