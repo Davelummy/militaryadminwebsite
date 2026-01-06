@@ -3,7 +3,7 @@ import crypto from "crypto";
 import type { IdentityRequestPayload } from "@/domain/identity/types";
 import { encryptSensitive } from "@/lib/security/encryption";
 import { isValidDob, isValidEmail, isValidPhone, isValidSsn } from "@/lib/security/validation";
-import { saveIdentityRequest, updateIdentityStatus } from "@/lib/db/identityStore";
+import { getIdentityRequest, saveIdentityRequest, updateIdentityStatus } from "@/lib/db/identityStore";
 import { verifyIdentityStub } from "@/services/identityVerificationService";
 
 const assertEnv = () => {
@@ -48,7 +48,25 @@ export async function POST(request: Request) {
     );
   }
 
-  const requestId = `SCF-${crypto.randomUUID()}`;
+  const generateRequestId = () => {
+    const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    const bytes = crypto.randomBytes(12);
+    let id = "";
+    for (let i = 0; i < 12; i += 1) {
+      id += alphabet[bytes[i] % alphabet.length];
+    }
+    return id;
+  };
+
+  let requestId = generateRequestId();
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const existing = await getIdentityRequest(requestId);
+    if (!existing) break;
+    requestId = generateRequestId();
+  }
+  if (await getIdentityRequest(requestId)) {
+    throw new Error("Unable to allocate request ID.");
+  }
   const now = new Date().toISOString();
 
   await saveIdentityRequest({

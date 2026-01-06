@@ -32,12 +32,24 @@ const ensureSchema = async () => {
     create table if not exists identity_requests (
       request_id text primary key,
       payload jsonb not null,
+      personal jsonb,
+      relationship jsonb,
+      service_member jsonb,
+      address jsonb,
+      sensitive jsonb,
+      documents jsonb,
       status text not null,
       info_required boolean not null default false,
       created_at timestamptz not null,
       updated_at timestamptz not null
     );
   `);
+  await pool.query("alter table identity_requests add column if not exists personal jsonb");
+  await pool.query("alter table identity_requests add column if not exists relationship jsonb");
+  await pool.query("alter table identity_requests add column if not exists service_member jsonb");
+  await pool.query("alter table identity_requests add column if not exists address jsonb");
+  await pool.query("alter table identity_requests add column if not exists sensitive jsonb");
+  await pool.query("alter table identity_requests add column if not exists documents jsonb");
   globalStore.__identityDbReady = true;
 };
 
@@ -89,14 +101,26 @@ export const saveIdentityRequest = async (record: IdentityRequestRecord): Promis
       insert into identity_requests (
         request_id,
         payload,
+        personal,
+        relationship,
+        service_member,
+        address,
+        sensitive,
+        documents,
         status,
         info_required,
         created_at,
         updated_at
       )
-      values ($1, $2, $3, $4, $5, $6)
+      values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
       on conflict (request_id) do update
         set payload = excluded.payload,
+            personal = excluded.personal,
+            relationship = excluded.relationship,
+            service_member = excluded.service_member,
+            address = excluded.address,
+            sensitive = excluded.sensitive,
+            documents = excluded.documents,
             status = excluded.status,
             info_required = excluded.info_required,
             updated_at = excluded.updated_at
@@ -104,6 +128,12 @@ export const saveIdentityRequest = async (record: IdentityRequestRecord): Promis
       [
         record.requestId,
         record,
+        record.personal,
+        record.relationship,
+        record.serviceMember,
+        record.address,
+        record.sensitive,
+        record.documents,
         record.status,
         record.infoRequired ?? false,
         record.createdAt,
