@@ -80,7 +80,7 @@ const persistToDisk = () => {
   }
 };
 
-export const saveIdentityRequest = async (record: IdentityRequestRecord) => {
+export const saveIdentityRequest = async (record: IdentityRequestRecord): Promise<void> => {
   if (shouldUseDatabase()) {
     await ensureSchema();
     const pool = getPool();
@@ -118,7 +118,9 @@ export const saveIdentityRequest = async (record: IdentityRequestRecord) => {
   persistToDisk();
 };
 
-export const getIdentityRequest = async (requestId: string) => {
+export const getIdentityRequest = async (
+  requestId: string
+): Promise<IdentityRequestRecord | undefined> => {
   if (shouldUseDatabase()) {
     await ensureSchema();
     const pool = getPool();
@@ -133,7 +135,10 @@ export const getIdentityRequest = async (requestId: string) => {
   return store.get(requestId);
 };
 
-export const updateIdentityStatus = async (requestId: string, status: IdentityStatus) => {
+export const updateIdentityStatus = async (
+  requestId: string,
+  status: IdentityStatus
+): Promise<void> => {
   const record = await getIdentityRequest(requestId);
   if (!record) return;
   const updated = {
@@ -145,21 +150,21 @@ export const updateIdentityStatus = async (requestId: string, status: IdentitySt
   await saveIdentityRequest(updated);
 };
 
-export const listIdentityRequests = async () => {
+export const listIdentityRequests = async (): Promise<IdentityRequestRecord[]> => {
   if (shouldUseDatabase()) {
     await ensureSchema();
     const pool = getPool();
     const result = await pool.query<{ payload: IdentityRequestRecord }>(
       "select payload from identity_requests order by created_at desc"
     );
-    return result.rows.map((row) => row.payload);
+    return result.rows.map((row) => row.payload as IdentityRequestRecord);
   }
 
   loadFromDisk();
   return Array.from(store.values());
 };
 
-export const markInfoRequired = async (requestId: string, value: boolean) => {
+export const markInfoRequired = async (requestId: string, value: boolean): Promise<void> => {
   const record = await getIdentityRequest(requestId);
   if (!record) return;
   await saveIdentityRequest({
