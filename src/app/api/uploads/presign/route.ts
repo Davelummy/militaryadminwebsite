@@ -41,6 +41,7 @@ export async function POST(request: Request) {
 
   const client = new S3Client({
     region: "auto",
+    forcePathStyle: true,
     endpoint: config.endpoint,
     credentials: {
       accessKeyId: config.accessKeyId,
