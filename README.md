@@ -1,36 +1,46 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MilitaryAdmin.org
 
-## Getting Started
+MilitaryAdmin.org is a prototype web portal for U.S. military families and trusted contacts
+to request verified communication access to active-duty service members.
 
-First, run the development server:
+## Purpose
+
+This project demonstrates the front-end user experience for identity verification and access
+requests. It emphasizes official U.S. government visual standards, accessibility, and secure
+handling of sensitive data.
+
+## Tech stack
+
+- Next.js (App Router) with TypeScript
+- USWDS 3 (U.S. Web Design System)
+- Sass (SCSS)
+
+## Running locally
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000` in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Copy `.env.example` to `.env.local` and set:
+- `IDENTITY_VERIFICATION_API_BASE_URL` for the future DoD verification API.
+- `ENCRYPTION_KEY` for prototype encryption (replace with KMS/HSM in production).
 
-## Learn More
+## Important security note
 
-To learn more about Next.js, take a look at the following resources:
+This repo is a front-end prototype. It does not implement real authentication, storage, or
+encryption. All sensitive flows must be integrated with an approved, secure backend before
+production use.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Data handling policy
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Third-party form handlers (Formcarry, Formspree, Zapier, email) are prohibited for sensitive data.
+- SSN, DOB, and ID document content are never logged or returned in API responses.
+- Sensitive fields are encrypted at rest using `ENCRYPTION_KEY` (prototype only).
+- Replace encryption with KMS/HSM-managed keys before production.
+- The identity verification integration is stubbed and must be replaced with the approved DoD
+  verification endpoint using secure networking and mutual TLS.
