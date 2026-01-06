@@ -43,7 +43,7 @@ export async function POST(request: Request) {
 
   if (errors.length > 0) {
     return NextResponse.json(
-      { message: "Invalid submission. Please review required fields." },
+      { message: "Invalid submission. Please review required fields.", errors },
       { status: 400 }
     );
   }

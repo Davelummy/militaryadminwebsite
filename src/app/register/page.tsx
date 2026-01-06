@@ -199,8 +199,9 @@ export default function RegisterPage() {
 
     if (currentStep === 3) {
       if (!formData.dob) nextErrors.dob = "Enter your date of birth.";
-      if (formData.ssn.replace(/\D/g, "").length < 4)
-        nextErrors.ssn = "Enter at least the last four digits of your SSN.";
+      const ssnDigits = formData.ssn.replace(/\D/g, "");
+      if (ssnDigits.length !== 4 && ssnDigits.length !== 9)
+        nextErrors.ssn = "Enter either the last 4 or full 9 digits of your SSN.";
       if (!formData.street.trim()) nextErrors.street = "Enter your street address.";
       if (!formData.city.trim()) nextErrors.city = "Enter your city.";
       if (!formData.state.trim()) nextErrors.state = "Enter your state.";
@@ -260,7 +261,40 @@ export default function RegisterPage() {
         body: JSON.stringify(payload),
       });
       if (!response.ok) {
-        throw new Error("Registration failed");
+        const data = (await response.json().catch(() => null)) as
+          | { message?: string; errors?: string[] }
+          | null;
+        if (data?.errors?.length) {
+          const nextErrors: Record<string, string> = {};
+          data.errors.forEach((field) => {
+            nextErrors[field] = "Please review this field.";
+          });
+          setErrors(nextErrors);
+          const stepByField: Record<string, number> = {
+            firstName: 1,
+            lastName: 1,
+            email: 1,
+            phone: 1,
+            password: 1,
+            confirmPassword: 1,
+            relationship: 2,
+            serviceMemberName: 2,
+            branch: 2,
+            dob: 3,
+            ssn: 3,
+            street: 3,
+            city: 3,
+            state: 3,
+            zip: 3,
+            idFront: 3,
+          };
+          const steps = data.errors.map((field) => stepByField[field]).filter(Boolean);
+          if (steps.length) {
+            setStep(Math.min(...steps));
+          }
+          return;
+        }
+        throw new Error(data?.message ?? "Registration failed");
       }
       const data = (await response.json()) as { requestId: string };
       setRequestId(data.requestId);
@@ -510,7 +544,7 @@ export default function RegisterPage() {
                   <FileUploadField
                     id="idFront"
                     label="Upload photo ID (front)"
-                    accept="image/png,image/jpeg,image/webp"
+                    accept="image/png,image/jpeg,image/webp,image/heic,image/heif"
                     hint="Accepted formats: JPG, PNG, WEBP."
                     file={formData.idFront}
                     required
@@ -520,7 +554,7 @@ export default function RegisterPage() {
                   <FileUploadField
                     id="idBack"
                     label="Upload photo ID (back, optional)"
-                    accept="image/png,image/jpeg,image/webp"
+                    accept="image/png,image/jpeg,image/webp,image/heic,image/heif"
                     file={formData.idBack}
                     onFileChange={(file) => updateField("idBack", file)}
                   />
