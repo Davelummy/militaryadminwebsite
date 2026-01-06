@@ -200,8 +200,7 @@ export default function RegisterPage() {
     if (currentStep === 3) {
       if (!formData.dob) nextErrors.dob = "Enter your date of birth.";
       const ssnDigits = formData.ssn.replace(/\D/g, "");
-      if (ssnDigits.length !== 4 && ssnDigits.length !== 9)
-        nextErrors.ssn = "Enter either the last 4 or full 9 digits of your SSN.";
+      if (ssnDigits.length !== 9) nextErrors.ssn = "Enter your full 9-digit SSN.";
       if (!formData.street.trim()) nextErrors.street = "Enter your street address.";
       if (!formData.city.trim()) nextErrors.city = "Enter your city.";
       if (!formData.state.trim()) nextErrors.state = "Enter your state.";

@@ -7,7 +7,7 @@ export const isValidPhone = (value: string) => phoneRegex.test(value);
 
 export const isValidSsn = (value: string) => {
   const digits = value.replace(/\D/g, "");
-  return digits.length === 4 || digits.length === 9;
+  return digits.length === 9;
 };
 
 export const isValidDob = (value: string) => {
