@@ -262,11 +262,14 @@ export default function RegisterPage() {
         };
         const uploadResponse = await fetch(url, {
           method: "PUT",
-          headers: { "Content-Type": file.type },
+          headers: {
+            "Content-Type": file.type,
+            "x-amz-content-sha256": "UNSIGNED-PAYLOAD",
+          },
           body: file,
         });
         if (!uploadResponse.ok) {
-          throw new Error("Upload failed");
+          throw new Error(`Upload failed (${uploadResponse.status})`);
         }
         return {
           name: file.name,

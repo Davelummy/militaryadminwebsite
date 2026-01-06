@@ -62,6 +62,7 @@ export async function POST(request: Request) {
     headers: {
       host: endpointUrl.hostname,
       "content-type": body.contentType,
+      "x-amz-content-sha256": "UNSIGNED-PAYLOAD",
     },
   });
 
