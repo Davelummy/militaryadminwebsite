@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { NodeHttpHandler } from "@smithy/node-http-handler";
 import crypto from "crypto";
+import https from "https";
 
 const getR2Config = () => {
   const accountId = process.env.R2_ACCOUNT_ID || "";
@@ -17,7 +19,10 @@ const getR2Config = () => {
     return null;
   }
 
-  return { accessKeyId, secretAccessKey, bucket, endpoint, publicBaseUrl };
+  const normalizedEndpoint = endpoint.startsWith("https://")
+    ? endpoint
+    : endpoint.replace(/^http:\/\//, "https://");
+  return { accessKeyId, secretAccessKey, bucket, endpoint: normalizedEndpoint, publicBaseUrl };
 };
 
 const sanitizeFilename = (name: string) =>
@@ -47,6 +52,9 @@ export async function POST(request: Request) {
       accessKeyId: config.accessKeyId,
       secretAccessKey: config.secretAccessKey,
     },
+    requestHandler: new NodeHttpHandler({
+      httpsAgent: new https.Agent({ keepAlive: false, minVersion: "TLSv1.2" }),
+    }),
   });
 
   const command = new PutObjectCommand({

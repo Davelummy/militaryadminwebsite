@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { DeleteObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { NodeHttpHandler } from "@smithy/node-http-handler";
 import crypto from "crypto";
+import https from "https";
 
 const getR2Config = () => {
   const accountId = process.env.R2_ACCOUNT_ID || "";
@@ -15,7 +17,10 @@ const getR2Config = () => {
     return null;
   }
 
-  return { accessKeyId, secretAccessKey, bucket, endpoint };
+  const normalizedEndpoint = endpoint.startsWith("https://")
+    ? endpoint
+    : endpoint.replace(/^http:\/\//, "https://");
+  return { accessKeyId, secretAccessKey, bucket, endpoint: normalizedEndpoint };
 };
 
 export async function POST() {
@@ -35,6 +40,9 @@ export async function POST() {
       accessKeyId: config.accessKeyId,
       secretAccessKey: config.secretAccessKey,
     },
+    requestHandler: new NodeHttpHandler({
+      httpsAgent: new https.Agent({ keepAlive: false, minVersion: "TLSv1.2" }),
+    }),
   });
 
   const key = `identity-uploads/healthcheck-${crypto.randomUUID()}.txt`;
