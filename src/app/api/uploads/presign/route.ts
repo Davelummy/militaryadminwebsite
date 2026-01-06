@@ -55,6 +55,8 @@ export async function POST(request: Request) {
     requestHandler: new NodeHttpHandler({
       httpsAgent: new https.Agent({ keepAlive: false, minVersion: "TLSv1.2" }),
     }),
+    requestChecksumCalculation: "NONE",
+    responseChecksumValidation: "NONE",
   });
 
   const command = new PutObjectCommand({
