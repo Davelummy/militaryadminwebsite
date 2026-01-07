@@ -256,17 +256,19 @@ export default function RegisterPage() {
         if (!presignResponse.ok) {
           return { name: file.name, size: file.size, type: contentType };
         }
-        const { url, key, publicUrl } = (await presignResponse.json()) as {
+        const { url, key, publicUrl, provider } = (await presignResponse.json()) as {
           url: string;
           key: string;
           publicUrl?: string | null;
+          provider?: "r2" | "supabase";
         };
+        const headers: Record<string, string> = { "Content-Type": contentType };
+        if (provider === "r2") {
+          headers["x-amz-content-sha256"] = "UNSIGNED-PAYLOAD";
+        }
         const uploadResponse = await fetch(url, {
           method: "PUT",
-          headers: {
-            "Content-Type": contentType,
-            "x-amz-content-sha256": "UNSIGNED-PAYLOAD",
-          },
+          headers,
           body: file,
         });
         if (!uploadResponse.ok) {
