@@ -67,7 +67,7 @@ export async function POST(request: Request) {
     });
     const { data, error } = await supabase.storage
       .from(supabaseConfig.bucket)
-      .createSignedUploadUrl(key, 300);
+      .createSignedUploadUrl(key, { upsert: false });
     if (error || !data?.signedUrl) {
       return NextResponse.json(
         { message: "Supabase upload not configured." },
