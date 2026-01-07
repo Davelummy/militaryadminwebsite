@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
-import { HttpRequest } from "@smithy/protocol-http";
-import { SignatureV4 } from "@smithy/signature-v4";
-import { Sha256 } from "@aws-crypto/sha256-js";
 
 const getSupabaseConfig = () => {
   const url = process.env.SUPABASE_URL || "";
@@ -18,33 +15,12 @@ const getSupabaseConfig = () => {
   return { url, serviceRoleKey, bucket, publicBaseUrl };
 };
 
-const getR2Config = () => {
-  const accountId = process.env.R2_ACCOUNT_ID || "";
-  const accessKeyId = process.env.R2_ACCESS_KEY_ID || "";
-  const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY || "";
-  const bucket = process.env.R2_BUCKET_NAME || "";
-  const endpoint = process.env.R2_ENDPOINT || (accountId
-    ? `https://${accountId}.r2.cloudflarestorage.com`
-    : "");
-  const publicBaseUrl = process.env.R2_PUBLIC_BASE_URL || "";
-
-  if (!accountId || !accessKeyId || !secretAccessKey || !bucket || !endpoint) {
-    return null;
-  }
-
-  const normalizedEndpoint = endpoint.startsWith("https://")
-    ? endpoint
-    : endpoint.replace(/^http:\/\//, "https://");
-  return { accessKeyId, secretAccessKey, bucket, endpoint: normalizedEndpoint, publicBaseUrl };
-};
-
 const sanitizeFilename = (name: string) =>
   name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 120);
 
 export async function POST(request: Request) {
   const supabaseConfig = getSupabaseConfig();
-  const r2Config = getR2Config();
-  if (!supabaseConfig && !r2Config) {
+  if (!supabaseConfig) {
     return NextResponse.json(
       { message: "Upload not configured." },
       { status: 400 }
@@ -80,42 +56,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ url: data.signedUrl, key, publicUrl, provider: "supabase" });
   }
 
-  const endpointUrl = new URL(r2Config.endpoint);
-  const signer = new SignatureV4({
-    credentials: {
-      accessKeyId: r2Config.accessKeyId,
-      secretAccessKey: r2Config.secretAccessKey,
-    },
-    region: "auto",
-    service: "s3",
-    sha256: Sha256,
-  });
-
-  const signedRequest = new HttpRequest({
-    protocol: endpointUrl.protocol,
-    hostname: endpointUrl.hostname,
-    method: "PUT",
-    path: `/${r2Config.bucket}/${key}`,
-    headers: {
-      host: endpointUrl.hostname,
-      "content-type": contentType,
-      "x-amz-content-sha256": "UNSIGNED-PAYLOAD",
-    },
-  });
-
-  const signed = await signer.presign(signedRequest, { expiresIn: 300 });
-  const query = new URLSearchParams();
-  Object.entries(signed.query ?? {}).forEach(([name, value]) => {
-    if (Array.isArray(value)) {
-      value.forEach((item) => query.append(name, item));
-      return;
-    }
-    if (value !== undefined) {
-      query.set(name, String(value));
-    }
-  });
-  const url = `${signed.protocol}//${signed.hostname}${signed.path}?${query.toString()}`;
-  const publicUrl = r2Config.publicBaseUrl ? `${r2Config.publicBaseUrl}/${key}` : null;
-
-  return NextResponse.json({ url, key, publicUrl, provider: "r2" });
+  return NextResponse.json(
+    { message: "Upload not configured." },
+    { status: 400 }
+  );
 }
