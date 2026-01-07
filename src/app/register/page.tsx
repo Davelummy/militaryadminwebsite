@@ -83,6 +83,7 @@ export default function RegisterPage() {
   const [requestId, setRequestId] = useState<string | null>(null);
   const [reloadWarning, setReloadWarning] = useState("");
   const [uploadWarning, setUploadWarning] = useState("");
+  const [errorSummary, setErrorSummary] = useState<string[]>([]);
 
   const relationshipOptions = useMemo(
     () => [
@@ -222,6 +223,7 @@ export default function RegisterPage() {
     }
 
     setErrors(nextErrors);
+    setErrorSummary(Object.values(nextErrors));
     if (Object.keys(nextErrors).length > 0) {
       focusFirstError(nextErrors);
       return false;
@@ -231,12 +233,15 @@ export default function RegisterPage() {
 
   const handleNext = () => {
     if (validateStep(step)) {
+      setErrors({});
+      setErrorSummary([]);
       setStep((prev) => Math.min(prev + 1, 4));
     }
   };
 
   const handleBack = () => {
     setErrors({});
+    setErrorSummary([]);
     setStep((prev) => Math.max(prev - 1, 1));
   };
 
@@ -401,6 +406,7 @@ export default function RegisterPage() {
           </div>
 
           <div className="registration-progress" data-step={step}>
+            <p className="muted-text">Step {step} of {stepLabels.length}</p>
             <p className="usa-heading-sm">Registration progress</p>
             <div
               className="progress-track"
@@ -690,6 +696,19 @@ export default function RegisterPage() {
                   />
                 </div>
               </section>
+            ) : null}
+
+            {errorSummary.length ? (
+              <div className="usa-alert usa-alert--error margin-top-2" role="alert">
+                <div className="usa-alert__body">
+                  <h2 className="usa-alert__heading">Fix the highlighted fields</h2>
+                  <ul className="usa-list">
+                    {errorSummary.map((message) => (
+                      <li key={message}>{message}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
             ) : null}
 
             {reloadWarning ? (

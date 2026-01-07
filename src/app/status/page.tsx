@@ -29,7 +29,11 @@ export default function StatusPage() {
     setLoading(true);
     try {
       const response = await fetch(`/api/identity/status?requestId=${encodeURIComponent(requestId)}`);
-      const data = (await response.json()) as StatusResponse;
+      const data = (await response.json()) as StatusResponse & { message?: string };
+      if (!response.ok) {
+        setError(data.message || "Unable to retrieve status. Please try again.");
+        return;
+      }
       setResult(data);
     } catch {
       setError("Unable to retrieve status. Please try again.");
@@ -54,7 +58,7 @@ export default function StatusPage() {
               <TextField
                 id="status-request-id"
                 label="Request ID"
-                hint="Example: SCF-39201"
+                hint="Example: 8TMPSMFFQMLW"
                 value={requestId}
                 onChange={(event) => setRequestId(event.target.value)}
                 error={error}

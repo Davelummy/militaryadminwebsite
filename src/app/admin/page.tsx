@@ -51,6 +51,7 @@ export default function AdminPage() {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
 
   const loadRecords = useCallback(async () => {
     setLoading(true);
@@ -76,6 +77,7 @@ export default function AdminPage() {
       const data = (await response.json()) as AdminListResponse;
       setRecords(data.records);
       setTotal(data.total);
+      setLastUpdated(new Date().toLocaleString());
     } catch {
       setError("Unable to load requests.");
     } finally {
@@ -134,6 +136,9 @@ export default function AdminPage() {
               Review incoming requests, verify details, and approve or reject access. Sensitive
               fields are redacted in this view.
             </p>
+            {lastUpdated ? (
+              <p className="muted-text">Last updated: {lastUpdated}</p>
+            ) : null}
             <Button
               type="button"
               variant="outline"
@@ -204,6 +209,18 @@ export default function AdminPage() {
               >
                 Apply filters
               </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setQuery("");
+                  setStatusFilter("ALL");
+                  setPage(1);
+                  void loadRecords();
+                }}
+              >
+                Clear filters
+              </Button>
             </div>
             {error ? (
               <div className="usa-alert usa-alert--error margin-top-2">
@@ -214,7 +231,13 @@ export default function AdminPage() {
             ) : null}
             <div className="admin-grid margin-top-2">
               {records.length === 0 ? (
-                <p className="muted-text">No requests available.</p>
+                <div className="usa-alert usa-alert--info">
+                  <div className="usa-alert__body">
+                    <p className="usa-alert__text">
+                      No requests match your filters. Clear filters to view all requests.
+                    </p>
+                  </div>
+                </div>
               ) : (
                 records.map((record) => (
                   <article className="wizard-step" key={record.requestId}>
