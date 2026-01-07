@@ -84,6 +84,7 @@ export function PageShell({
                 aria-label="Admin navigation"
                 id={navId}
               >
+                <div className="nav-overlay" aria-hidden="true" onClick={handleNavLinkClick} />
                 <ul className="usa-nav__primary usa-accordion">
                   <li className="usa-nav__primary-item">
                     <Link className="usa-nav__link" href="/admin" onClick={handleNavLinkClick}>
@@ -103,6 +104,7 @@ export function PageShell({
                 aria-label="Primary navigation"
                 id={navId}
               >
+                <div className="nav-overlay" aria-hidden="true" onClick={handleNavLinkClick} />
                 <ul className="usa-nav__primary usa-accordion">
                   <li className="usa-nav__primary-item">
                     <Link className="usa-nav__link" href="/how-it-works" onClick={handleNavLinkClick}>
