@@ -1,6 +1,8 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
 type PageShellProps = {
   children: ReactNode;
@@ -13,6 +15,12 @@ export function PageShell({
   variant = "applicant",
   showNav = true,
 }: PageShellProps) {
+  const [navOpen, setNavOpen] = useState(false);
+  const navId = variant === "admin" ? "admin-primary-nav" : "primary-nav";
+  const handleNavLinkClick = () => {
+    setNavOpen(false);
+  };
+
   return (
     <div className={`page-shell focus-outline ${variant === "admin" ? "admin-shell" : ""}`}>
       <a className="usa-skipnav" href="#main-content">
@@ -57,43 +65,62 @@ export function PageShell({
                   : "Military family access and identity verification portal"}
               </div>
             </div>
+            {showNav ? (
+              <button
+                type="button"
+                className="usa-menu-btn nav-toggle"
+                aria-controls={navId}
+                aria-expanded={navOpen}
+                onClick={() => setNavOpen((prev) => !prev)}
+              >
+                Menu
+              </button>
+            ) : null}
           </div>
           {showNav ? (
             variant === "admin" ? (
-              <nav className="usa-nav" aria-label="Admin navigation">
+              <nav
+                className={`usa-nav${navOpen ? " is-visible" : ""}`}
+                aria-label="Admin navigation"
+                id={navId}
+              >
                 <ul className="usa-nav__primary usa-accordion">
                   <li className="usa-nav__primary-item">
-                    <Link className="usa-nav__link" href="/admin">
+                    <Link className="usa-nav__link" href="/admin" onClick={handleNavLinkClick}>
                       Review console
                     </Link>
                   </li>
                   <li className="usa-nav__primary-item">
-                    <Link className="usa-nav__link" href="/admin/login">
+                    <Link className="usa-nav__link" href="/admin/login" onClick={handleNavLinkClick}>
                       Admin login
                     </Link>
                   </li>
                 </ul>
               </nav>
             ) : (
-              <nav className="usa-nav" aria-label="Primary navigation">
+              <nav
+                className={`usa-nav${navOpen ? " is-visible" : ""}`}
+                aria-label="Primary navigation"
+                id={navId}
+              >
                 <ul className="usa-nav__primary usa-accordion">
                   <li className="usa-nav__primary-item">
-                    <Link className="usa-nav__link" href="/how-it-works">
+                    <Link className="usa-nav__link" href="/how-it-works" onClick={handleNavLinkClick}>
                       How it works
                     </Link>
                   </li>
                   <li className="usa-nav__primary-item">
-                    <Link className="usa-nav__link" href="/register">
+                    <Link className="usa-nav__link" href="/register" onClick={handleNavLinkClick}>
                       Register
                     </Link>
                   </li>
                   <li className="usa-nav__primary-item">
-                    <Link className="usa-nav__link" href="/security">
+                    <Link className="usa-nav__link" href="/security" onClick={handleNavLinkClick}>
                       Security & privacy
                     </Link>
                   </li>
                   <li className="usa-nav__primary-item">
-                    <Link className="usa-nav__link" href="/status">
+                    <Link className="usa-nav__link" href="/status" onClick={handleNavLinkClick}>
                       Status
                     </Link>
                   </li>

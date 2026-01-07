@@ -306,6 +306,16 @@ a {
   padding: var(--space-md) 0;
 }
 
+.nav-toggle {
+  margin-left: auto;
+}
+
+@media (min-width: 64rem) {
+  .nav-toggle {
+    display: none;
+  }
+}
+
 .usa-banner__header {
   background: rgba(17, 46, 81, 0.06);
   color: var(--color-navy);
